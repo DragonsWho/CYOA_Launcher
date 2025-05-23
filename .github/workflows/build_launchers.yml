@@ -1,4 +1,4 @@
-name: Build CYOA Launcher
+name: Build Python Executables
 
 on:
   push:
@@ -18,21 +18,21 @@ jobs:
           - os_name: Linux
             os_image: ubuntu-latest
             python_version: '3.9'
-            icon_file: "icon.png" # PyInstaller может использовать PNG для Linux
-            output_name: "CYOA_Launcher-linux"
+            icon_file: "icon.png"
+            output_name: "CYOA_Launcher-linux" # Если будет архив, то добавим .tar.gz в Prepare Artifact
             pyinstaller_options: ""
           - os_name: Windows
             os_image: windows-latest
             python_version: '3.9'
             icon_file: "icon.ico"
-            output_name: "CYOA_Launcher-windows.exe"
+            output_name: "CYOA_Launcher-windows" # Если будет архив, то .zip, если файл то .exe
             pyinstaller_options: ""
           - os_name: macOS
-            os_image: macos-latest # Обычно macos-12 или macos-13, latest = macos-12 сейчас
+            os_image: macos-latest
             python_version: '3.9'
             icon_file: "icon.icns"
             output_name: "CYOA_Launcher-macos" # .app будет внутри zip
-            pyinstaller_options: "--onefile" # Для macOS --onefile создает .app, которое затем можно упаковать
+            pyinstaller_options: "" # --onefile и --windowed создадут .app
 
     steps:
     - name: Checkout code
@@ -51,6 +51,7 @@ jobs:
     - name: Build executable with PyInstaller
       run: |
         pyinstaller --name "CYOA Launcher" \
+                    --onefile \
                     --windowed \
                     ${{ matrix.pyinstaller_options }} \
                     --icon="${{ matrix.icon_file }}" \
@@ -60,39 +61,53 @@ jobs:
       if: matrix.os_name == 'Linux'
       run: |
         mkdir artifact
-        if [ -d "dist/CYOA Launcher" ]; then # Если это директория
-          tar -czvf artifact/"${{ matrix.output_name }}.tar.gz" -C dist/ "CYOA Launcher"
-        elif [ -f "dist/CYOA Launcher" ]; then # Если это один файл (результат --onefile)
-          cp dist/"CYOA Launcher" artifact/"${{ matrix.output_name }}"
+        if [ -d "dist/CYOA Launcher" ]; then # Если это директория (маловероятно с --onefile, но для надежности)
+          OUTPUT_FILENAME="${{ matrix.output_name }}.tar.gz"
+          tar -czvf artifact/"$OUTPUT_FILENAME" -C dist/ "CYOA Launcher"
+          echo "ARTIFACT_PATH=artifact/$OUTPUT_FILENAME" >> $GITHUB_ENV
+        elif [ -f "dist/CYOA Launcher" ]; then # Если это один файл
+          OUTPUT_FILENAME="${{ matrix.output_name }}"
+          cp "dist/CYOA Launcher" "artifact/$OUTPUT_FILENAME"
+          echo "ARTIFACT_PATH=artifact/$OUTPUT_FILENAME" >> $GITHUB_ENV
         else
           echo "ERROR: Output 'dist/CYOA Launcher' not found or is not a file/directory."
           exit 1
         fi
+        echo "Prepared Linux artifact: $(ls artifact)"
+
 
     - name: Prepare Artifact (Windows)
       if: matrix.os_name == 'Windows'
       run: |
         mkdir artifact
-        if (Test-Path -Path "dist\CYOA Launcher" -PathType Container) { # Если это директория
-          Compress-Archive -Path "dist\CYOA Launcher\*" -DestinationPath "artifact\${{ matrix.output_name }}.zip" -Force
+        if (Test-Path -Path "dist\CYOA Launcher" -PathType Container) { # Если это директория (маловероятно с --onefile)
+          $OUTPUT_FILENAME = "${{ matrix.output_name }}.zip"
+          Compress-Archive -Path "dist\CYOA Launcher\*" -DestinationPath "artifact\$OUTPUT_FILENAME" -Force
+          echo "ARTIFACT_PATH=artifact\$OUTPUT_FILENAME" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         } elseif (Test-Path -Path "dist\CYOA Launcher.exe" -PathType Leaf) { # Если это один файл .exe
-          Copy-Item "dist\CYOA Launcher.exe" -Destination "artifact\${{ matrix.output_name }}"
+          $OUTPUT_FILENAME = "${{ matrix.output_name }}.exe" # Добавим .exe к имени артефакта
+          Copy-Item "dist\CYOA Launcher.exe" -Destination "artifact\$OUTPUT_FILENAME"
+          echo "ARTIFACT_PATH=artifact\$OUTPUT_FILENAME" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
         } else {
           Write-Error "ERROR: Output 'dist\CYOA Launcher' or 'dist\CYOA Launcher.exe' not found."
           exit 1
         }
+        Write-Host "Prepared Windows artifact: $(Get-ChildItem artifact | Select-Object -ExpandProperty Name)"
 
     - name: Prepare Artifact (macOS)
       if: matrix.os_name == 'macOS'
       run: |
         mkdir artifact
-        # PyInstaller с --windowed на macOS создает .app бандл в dist/
-        # Его нужно заархивировать для загрузки
-        ditto -c -k --sequesterRsrc --keepParent dist/"CYOA Launcher.app" artifact/"${{ matrix.output_name }}.zip"
+        # PyInstaller с --windowed и --onefile на macOS создает .app бандл в dist/
+        OUTPUT_FILENAME="${{ matrix.output_name }}.zip"
+        ditto -c -k --sequesterRsrc --keepParent dist/"CYOA Launcher.app" artifact/"$OUTPUT_FILENAME"
+        echo "ARTIFACT_PATH=artifact/$OUTPUT_FILENAME" >> $GITHUB_ENV
+        echo "Prepared macOS artifact: $(ls artifact)"
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: CYOA-Launcher-${{ matrix.os_name }}
-        path: artifact/
-        if-no-files-found: error # Завершать с ошибкой, если артефакты не найдены
+        # path: ${{ env.ARTIFACT_PATH }} # Загружаем конкретный файл/архив
+        path: artifact/ # Или просто всю папку artifact, если там всегда один нужный файл
+        if-no-files-found: error
