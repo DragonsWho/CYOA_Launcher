@@ -60,17 +60,27 @@ jobs:
       if: matrix.os_name == 'Linux'
       run: |
         mkdir artifact
-        cp dist/"CYOA Launcher" artifact/"${{ matrix.output_name }}"
-        # Если бы вы не использовали --onefile, то было бы:
-        # tar -czvf artifact/"${{ matrix.output_name }}.tar.gz" -C dist/ ."CYOA Launcher"
+        if [ -d "dist/CYOA Launcher" ]; then # Если это директория
+          tar -czvf artifact/"${{ matrix.output_name }}.tar.gz" -C dist/ "CYOA Launcher"
+        elif [ -f "dist/CYOA Launcher" ]; then # Если это один файл (результат --onefile)
+          cp dist/"CYOA Launcher" artifact/"${{ matrix.output_name }}"
+        else
+          echo "ERROR: Output 'dist/CYOA Launcher' not found or is not a file/directory."
+          exit 1
+        fi
 
     - name: Prepare Artifact (Windows)
       if: matrix.os_name == 'Windows'
       run: |
         mkdir artifact
-        copy dist\"CYOA Launcher.exe" artifact\"${{ matrix.output_name }}"
-        # Если бы вы не использовали --onefile, то было бы:
-        # 7z a artifact\"${{ matrix.output_name }}.zip" dist\"CYOA Launcher"\*
+        if (Test-Path -Path "dist\CYOA Launcher" -PathType Container) { # Если это директория
+          Compress-Archive -Path "dist\CYOA Launcher\*" -DestinationPath "artifact\${{ matrix.output_name }}.zip" -Force
+        } elseif (Test-Path -Path "dist\CYOA Launcher.exe" -PathType Leaf) { # Если это один файл .exe
+          Copy-Item "dist\CYOA Launcher.exe" -Destination "artifact\${{ matrix.output_name }}"
+        } else {
+          Write-Error "ERROR: Output 'dist\CYOA Launcher' or 'dist\CYOA Launcher.exe' not found."
+          exit 1
+        }
 
     - name: Prepare Artifact (macOS)
       if: matrix.os_name == 'macOS'
