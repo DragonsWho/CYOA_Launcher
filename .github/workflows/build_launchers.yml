@@ -2,36 +2,38 @@ name: Build CYOA Launcher
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main ] # Or your default branch e.g., master
     tags:
-      - 'v*'
-  workflow_dispatch:
+      - 'v*' # Also run on version tags like v1.0, v1.2.3
+  workflow_dispatch: # Allows manual triggering
 
 jobs:
   build:
     name: Build for ${{ matrix.os_name }}
     runs-on: ${{ matrix.os_image }}
+    # Add fail-fast: false to allow other jobs to continue if one fails
     strategy:
+      fail-fast: false # <--- ADD THIS LINE
       matrix:
         include:
           - os_name: Windows
             os_image: windows-latest
-            spec_file: "CYOA Launcher.spec" # Указываем spec файл
-            icon_cli_opt: "--icon=icon.ico" # Опция иконки для командной строки
-            output_name: "CYOA Launcher.exe"
-            artifact_suffix: Windows
+            spec_file: "CYOA Launcher.spec"
+            # icon_cli_opt: "--icon=icon.ico" # No longer needed if icon is in spec
+            output_artifact_name: "CYOA Launcher.exe" # Expected output in dist/
+            artifact_name_suffix: Windows
           - os_name: Linux
             os_image: ubuntu-latest
             spec_file: "CYOA Launcher.spec"
-            icon_cli_opt: "" # Иконка для Linux обычно не через CLI для исполняемого файла
-            output_name: "CYOA Launcher"
-            artifact_suffix: Linux
+            # icon_cli_opt: ""
+            output_artifact_name: "CYOA Launcher" # Expected output in dist/
+            artifact_name_suffix: Linux
           - os_name: macOS
             os_image: macos-latest
-            spec_file: "CYOA Launcher.spec" # Или отдельный spec для .app
-            icon_cli_opt: "--icon=icon.icns"
-            output_name: "CYOA Launcher.app" # Или просто "CYOA Launcher" если spec не делает .app
-            artifact_suffix: macOS
+            spec_file: "CYOA Launcher.spec"
+            # icon_cli_opt: "--icon=icon.icns" # No longer needed if icon is in spec and BUNDLE is defined
+            output_artifact_name: "CYOA Launcher.app" # Expected .app bundle in dist/
+            artifact_name_suffix: macOS
 
     steps:
       - name: Check out repository code
@@ -40,47 +42,38 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.12' # Adjust if needed
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pyinstaller beautifulsoup4 chardet requests
+          pip install pyinstaller beautifulsoup4 chardet requests # Ensure all downloader deps are here
 
-      # Опционально: установка UPX для уменьшения размера
+      # Optional: Install UPX for smaller executables
       - name: Install UPX (Linux)
         if: matrix.os_name == 'Linux'
         run: |
-          sudo apt-get update && sudo apt-get install -y upx-ucl
-      # Для Windows UPX обычно нужно скачивать отдельно
-      # Для macOS: brew install upx (если brew доступен)
+          sudo apt-get update -y && sudo apt-get install -y upx-ucl
+      # Note: UPX on Windows/macOS in CI might require more setup (downloading UPX manually)
 
       - name: Build Application using Spec
         run: |
-          pyinstaller --noconfirm "${{ matrix.spec_file }}"
-        # --noconfirm чтобы перезаписывать папку dist/build без вопросов
-        # Опцию --windowed и --name можно убрать, если они уже правильно заданы в .spec файле
-        # Если в .spec уже есть EXE(..., console=False, ...), то --windowed не нужен в CLI.
-        # Если в .spec уже есть EXE(..., name='CYOA Launcher', ...), то --name не нужен в CLI.
-        # Опция --icon из CLI может переопределить иконку из spec, если нужно.
+          pyinstaller --noconfirm --onefile "${{ matrix.spec_file }}"
+          # The --onefile flag might be redundant if your spec is correctly configured
+          # for a single file output (no COLLECT for output, and BUNDLE for macOS .app).
+          # PyInstaller will honor the structure defined in the spec.
+          # If your spec defines a BUNDLE for macOS, --onefile might be ignored or conflict.
+          # For .app bundles, just `pyinstaller --noconfirm "Your.spec"` is often enough.
+          # Let's keep --onefile for now to ensure single executable for Win/Linux if spec isn't perfect.
         shell: bash
-
-      - name: Prepare Artifact Path
-        id: prepare_artifact
-        run: |
-          if [ "${{ matrix.os_name }}" == "macOS" ]; then
-            echo "artifact_path=dist/${{ matrix.output_name }}" >> $GITHUB_ENV
-          else
-            echo "artifact_path=dist/${{ matrix.output_name }}" >> $GITHUB_ENV
-          fi
-        shell: bash
-
-      - name: List dist directory
+        
+      - name: List dist directory (for debugging)
         run: ls -R dist
         shell: bash
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: CYOA-Launcher-${{ matrix.artifact_suffix }}
-          path: ${{ env.artifact_path }}
+          name: CYOA-Launcher-${{ matrix.artifact_name_suffix }}
+          path: dist/${{ matrix.output_artifact_name }}
+          # For macOS .app (which is a directory), this will zip it.
