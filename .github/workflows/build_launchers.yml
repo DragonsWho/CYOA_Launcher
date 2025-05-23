@@ -2,33 +2,35 @@ name: Build CYOA Launcher
 
 on:
   push:
-    branches: [ main ] # Or your default branch e.g., master
+    branches: [ main ]
     tags:
-      - 'v*' # Also run on version tags like v1.0, v1.2.3
-  workflow_dispatch: # Allows manual triggering
+      - 'v*'
+  workflow_dispatch:
 
 jobs:
   build:
     name: Build for ${{ matrix.os_name }}
-    runs-on: ${{ matrix.os_image }} # Use OS image from the matrix
+    runs-on: ${{ matrix.os_image }}
     strategy:
       matrix:
-        # Define the different build configurations
         include:
           - os_name: Windows
             os_image: windows-latest
-            icon_file: icon.ico
+            spec_file: "CYOA Launcher.spec" # Указываем spec файл
+            icon_cli_opt: "--icon=icon.ico" # Опция иконки для командной строки
             output_name: "CYOA Launcher.exe"
             artifact_suffix: Windows
           - os_name: Linux
             os_image: ubuntu-latest
-            icon_file: "" # PyInstaller usually ignores --icon for Linux executables
+            spec_file: "CYOA Launcher.spec"
+            icon_cli_opt: "" # Иконка для Linux обычно не через CLI для исполняемого файла
             output_name: "CYOA Launcher"
             artifact_suffix: Linux
           - os_name: macOS
             os_image: macos-latest
-            icon_file: icon.icns
-            output_name: "CYOA Launcher.app" # For macOS, it's an .app bundle
+            spec_file: "CYOA Launcher.spec" # Или отдельный spec для .app
+            icon_cli_opt: "--icon=icon.icns"
+            output_name: "CYOA Launcher.app" # Или просто "CYOA Launcher" если spec не делает .app
             artifact_suffix: macOS
 
     steps:
@@ -38,46 +40,42 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12' # Adjust if needed
+          python-version: '3.12'
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install pyinstaller
+          pip install pyinstaller beautifulsoup4 chardet requests
 
-      - name: Build Application
-        # Construct the PyInstaller command dynamically
-        # Note: For Linux, --icon will be present but likely ignored for the executable itself.
-        # For Windows and macOS, it's essential.
-        run: |
-          PYINSTALLER_CMD="pyinstaller --onefile --windowed --name \"CYOA Launcher\""
-          if [ -n "${{ matrix.icon_file }}" ]; then
-            PYINSTALLER_CMD="$PYINSTALLER_CMD --icon=${{ matrix.icon_file }}"
-          fi
-          PYINSTALLER_CMD="$PYINSTALLER_CMD CYOA_Launcher.py"
-          echo "Running PyInstaller command: $PYINSTALLER_CMD"
-          eval $PYINSTALLER_CMD
-        shell: bash # Ensure bash is used for the script block for consistent behavior
-
-      - name: Prepare Artifact Path (Windows)
-        if: matrix.os_name == 'Windows'
-        run: |
-          echo "ARTIFACT_PATH=dist/${{ matrix.output_name }}" >> $GITHUB_ENV
-        shell: bash
-
-      - name: Prepare Artifact Path (Linux)
+      # Опционально: установка UPX для уменьшения размера
+      - name: Install UPX (Linux)
         if: matrix.os_name == 'Linux'
         run: |
-          echo "ARTIFACT_PATH=dist/${{ matrix.output_name }}" >> $GITHUB_ENV
+          sudo apt-get update && sudo apt-get install -y upx-ucl
+      # Для Windows UPX обычно нужно скачивать отдельно
+      # Для macOS: brew install upx (если brew доступен)
+
+      - name: Build Application using Spec
+        run: |
+          pyinstaller --onefile --noconfirm ${{ matrix.icon_cli_opt }} ${{ matrix.spec_file }}
+        # --noconfirm чтобы перезаписывать папку dist/build без вопросов
+        # Опцию --windowed и --name можно убрать, если они уже правильно заданы в .spec файле
+        # Если в .spec уже есть EXE(..., console=False, ...), то --windowed не нужен в CLI.
+        # Если в .spec уже есть EXE(..., name='CYOA Launcher', ...), то --name не нужен в CLI.
+        # Опция --icon из CLI может переопределить иконку из spec, если нужно.
         shell: bash
 
-      - name: Prepare Artifact Path (macOS)
-        if: matrix.os_name == 'macOS'
+      - name: Prepare Artifact Path
+        id: prepare_artifact
         run: |
-          echo "ARTIFACT_PATH=dist/${{ matrix.output_name }}" >> $GITHUB_ENV # This is an .app folder
+          if [ "${{ matrix.os_name }}" == "macOS" ]; then
+            echo "artifact_path=dist/${{ matrix.output_name }}" >> $GITHUB_ENV
+          else
+            echo "artifact_path=dist/${{ matrix.output_name }}" >> $GITHUB_ENV
+          fi
         shell: bash
-        
-      - name: List dist directory (for debugging)
+
+      - name: List dist directory
         run: ls -R dist
         shell: bash
 
@@ -85,4 +83,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: CYOA-Launcher-${{ matrix.artifact_suffix }}
-          path: ${{ env.ARTIFACT_PATH }}
+          path: ${{ env.artifact_path }}
