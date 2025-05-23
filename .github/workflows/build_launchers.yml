@@ -58,8 +58,7 @@ jobs:
 
       - name: Build Application using Spec
         run: |
-          pyinstaller --noconfirm --onefile "${{ matrix.spec_file }}"
-          # The --onefile flag might be redundant if your spec is correctly configured
+          pyinstaller --noconfirm "${{ matrix.spec_file }}" 
           # for a single file output (no COLLECT for output, and BUNDLE for macOS .app).
           # PyInstaller will honor the structure defined in the spec.
           # If your spec defines a BUNDLE for macOS, --onefile might be ignored or conflict.
