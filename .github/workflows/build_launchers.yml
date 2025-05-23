@@ -57,7 +57,7 @@ jobs:
 
       - name: Build Application using Spec
         run: |
-          pyinstaller --onefile --noconfirm ${{ matrix.icon_cli_opt }} "${{ matrix.spec_file }}"
+          pyinstaller --noconfirm "${{ matrix.spec_file }}"
         # --noconfirm чтобы перезаписывать папку dist/build без вопросов
         # Опцию --windowed и --name можно убрать, если они уже правильно заданы в .spec файле
         # Если в .spec уже есть EXE(..., console=False, ...), то --windowed не нужен в CLI.
