@@ -29,14 +29,15 @@ except ImportError:
 
 # --- Helper function to determine the base path (usable before full Tkinter init for early logging) ---
 def get_application_path_early():
-    if getattr(sys, 'frozen', False):
+    if getattr(sys, 'frozen', False): # PyInstaller creates a temp folder and stores path in _MEIPASS
         return Path(os.path.dirname(sys.executable))
     else:
         return Path(os.path.dirname(os.path.abspath(__file__)))
 
 # Redirect stdout and stderr for bundled applications
 IS_FROZEN = getattr(sys, 'frozen', False)
-CONSOLE_ATTACHED = hasattr(sys.stdout, 'fileno')
+# Check if stdout is a valid stream object before checking fileno
+CONSOLE_ATTACHED = sys.stdout is not None and hasattr(sys.stdout, 'fileno')
 
 if IS_FROZEN and not CONSOLE_ATTACHED: # Only for a bundled windowed application without a console
     try:
@@ -48,13 +49,9 @@ if IS_FROZEN and not CONSOLE_ATTACHED: # Only for a bundled windowed application
         sys.stderr = open(log_dir / "stderr.log", "w", encoding="utf-8", buffering=1)
 
         print("Stdout and Stderr redirected to files in logs/ directory.", file=sys.stdout)
-        # print("This is a test error message.", file=sys.stderr) # Example, can be removed
 
     except Exception as e_log_redirect:
         # If redirection fails, there's not much we can do, but at least the app won't crash.
-        # In this case, errors might not be logged. A messagebox could be shown,
-        # but Tkinter might not be fully initialized yet.
-        # messagebox.showerror("Logging Error", f"Failed to redirect stdio: {e_log_redirect}")
         pass
 
 # Default port
@@ -115,8 +112,7 @@ class GameLauncherApp:
 
         # --- Download Game Section ---
         downloader_frame = ttk.LabelFrame(root_window, text="Download Game", padding=10)
-        # Adjusted pady here: from (10,5) to (2,5) to move it slightly higher
-        downloader_frame.pack(pady=(2,5), padx=10, fill=tk.X)
+        downloader_frame.pack(pady=(2,5), padx=10, fill=tk.X) # pady adjusted
 
         ttk.Label(downloader_frame, text="Game URL:").grid(row=0, column=0, sticky=tk.W, pady=2)
         self.url_entry = ttk.Entry(downloader_frame, width=50)
@@ -141,12 +137,15 @@ class GameLauncherApp:
         self.download_and_play_button = ttk.Button(download_buttons_frame, text="Download & Play", command=self.start_download_and_play_process)
         self.download_and_play_button.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(2,0))
 
-        self.download_status_label_var = tk.StringVar(value="\n") # Initial one newline for spacing
+        self.download_status_label_var = tk.StringVar(value="\n") # Initial value for two-line height
         self.download_status_label = ttk.Label(downloader_frame, textvariable=self.download_status_label_var, wraplength=460, justify=tk.LEFT, anchor=tk.NW)
         self.download_status_label.grid(row=3, column=0, columnspan=2, sticky=tk.NSEW, pady=(5,2))
+        # Store the font for consistent measurement in update_download_status
+        self._download_status_label_font = self._get_widget_font(self.download_status_label)
+
 
         downloader_frame.columnconfigure(1, weight=1)
-        downloader_frame.rowconfigure(3, weight=1) # Allow status label row to expand
+        downloader_frame.rowconfigure(3, weight=1)
 
         # --- Server Control Section ---
         server_frame = ttk.LabelFrame(root_window, text="Server Control", padding=10)
@@ -179,7 +178,7 @@ class GameLauncherApp:
         # --- About Section ---
         info_frame = ttk.LabelFrame(root_window, text="About", padding=10)
         info_frame.pack(pady=(5,10), padx=10, fill=tk.X)
-        made_by_label = ttk.Label(info_frame, text="Made by Dragon's Whore!") # Creator credit
+        made_by_label = ttk.Label(info_frame, text="Made by Dragon's Whore!")
         made_by_label.pack()
         links_frame = ttk.Frame(info_frame)
         links_frame.pack(pady=5)
@@ -198,6 +197,29 @@ class GameLauncherApp:
         self.try_initial_auto_start()
         self.update_ui_states()
 
+    def _get_widget_font(self, widget: ttk.Widget) -> tkFont.Font:
+        """Gets the tkFont.Font object for a given widget."""
+        font_name_str = widget.cget("font")
+        try:
+            return tkFont.Font(font=font_name_str)
+        except tk.TclError:
+            # Fallback if font_name_str is not a direct font object name
+            # (e.g., a system font description)
+            # This logic is adapted from _make_hyperlink_style
+            # It attempts to get a default font and use its properties
+            try:
+                # Try to get the actual font object from the name Tk uses
+                resolved_font = tkFont.nametofont(font_name_str)
+                return tkFont.Font(font=resolved_font.actual())
+            except tk.TclError:
+                 # If all else fails, use TkDefaultFont
+                base_font = tkFont.nametofont("TkDefaultFont")
+                return tkFont.Font(family=base_font.actual("family"),
+                                   size=base_font.actual("size"),
+                                   weight=base_font.actual("weight"),
+                                   slant=base_font.actual("slant"))
+
+
     def make_entry_context_menu(self, entry_widget):
         menu = tk.Menu(entry_widget, tearoff=0)
         menu.add_command(label="Cut", command=lambda: entry_widget.event_generate("<<Cut>>"))
@@ -210,28 +232,22 @@ class GameLauncherApp:
     def _select_all_entry(self, entry_widget):
         entry_widget.select_range(0, tk.END)
         entry_widget.icursor(tk.END)
-        return "break" # Prevents default behavior if any
+        return "break"
 
     def _open_link(self, url):
         webbrowser.open_new_tab(url)
 
     def _make_hyperlink_style(self, widget):
-        font_name_str = widget.cget("font")
-        try:
-            current_font_obj = tkFont.Font(font=font_name_str)
-        except tk.TclError: # Fallback if font string is not a valid font object name
-            base_font = tkFont.nametofont("TkDefaultFont")
-            current_font_obj = tkFont.Font(family=base_font.actual("family"),
-                                           size=base_font.actual("size"),
-                                           weight=base_font.actual("weight"),
-                                           slant=base_font.actual("slant"))
+        # Use the new _get_widget_font method
+        current_font_obj = self._get_widget_font(widget)
         current_font_obj.configure(underline=True)
         widget.configure(font=current_font_obj)
 
     def update_download_status(self, status_type: str, data: Dict):
         message = data.get("message", "")
         current_url = data.get("url", "")
-        final_msg = ""
+        final_msg = "" # This will be the raw message content
+
         if status_type == "status" or status_type == "error":
             final_msg = message
         elif status_type == "progress_resource":
@@ -244,15 +260,25 @@ class GameLauncherApp:
             final_msg = f"Overall: {data.get('processed', 0)}/{data.get('total_expected', 0)} - {data.get('current_url_status_type','')} {display_url_overall}"
         elif status_type == "finished":
             final_msg = data.get("summary_message", "Download finished.")
-            if not final_msg.strip() : final_msg = "\n" # Ensure some content if summary is empty
+            # Call handle_download_finished immediately, it contains its own UI updates and message boxes
             self.root.after(0, lambda: self.handle_download_finished(data.get("index_html_path"), data.get("summary_message")))
+            # The summary_message from 'finished' will also be set to the label below
 
-        # Ensure short single-line messages occupy two lines visually by adding a newline, for consistent height.
-        # (Assumes default font size where 12 chars/line approx for wraplength comparison)
-        if final_msg and final_msg.count('\n') == 0 and len(final_msg) < self.download_status_label.cget('wraplength') / 12 :
-            final_msg += "\n"
-        elif not final_msg: final_msg = "\n" # Default to a newline if message is empty
-        self.root.after(0, lambda m=final_msg: self.download_status_label_var.set(m))
+        final_msg_to_set: str
+        if not final_msg.strip(): # If the message is effectively empty
+            final_msg_to_set = "\n" # Ensure at least one newline for minimal height (two visual lines)
+        else:
+            label_wraplength = self.download_status_label.cget('wraplength')
+            # Check if the message, without explicit newlines, fits on one line
+            if '\n' not in final_msg and self._download_status_label_font.measure(final_msg) <= label_wraplength:
+                # This is a single line that fits. Add a newline to make it occupy space of two lines.
+                final_msg_to_set = final_msg + "\n"
+            else:
+                # Message either contains its own newlines or is long enough to wrap to two or more lines.
+                final_msg_to_set = final_msg
+
+        self.root.after(0, lambda m=final_msg_to_set: self.download_status_label_var.set(m))
+
 
     def start_download_only_process(self):
         self._initiate_download(play_after=False)
@@ -272,28 +298,29 @@ class GameLauncherApp:
         self.is_downloading = True
         self.play_after_current_download = play_after
         self.update_ui_states()
-        self.download_status_label_var.set("Processing URL...\n")
+        self.update_download_status("status", {"message": "Processing URL..."}) # Use the method for consistency
         self.root.update_idletasks()
         processed_url = url_utils.preprocess_url(raw_url_from_entry)
 
         if not processed_url:
             err_msg = f"Invalid URL format: {raw_url_from_entry}\nPlease check and ensure it's a valid web address (e.g., https://domain.com/path)."
-            self.download_status_label_var.set(err_msg)
+            self.update_download_status("error", {"message": err_msg})
             messagebox.showerror("Input Error", err_msg)
             self.is_downloading = False
             self.update_ui_states()
             return
 
-        self.download_status_label_var.set(f"Processed URL: {processed_url[:70]}...\n")
+        self.update_download_status("status", {"message": f"Processed URL: {processed_url[:70]}..."})
         self.root.update_idletasks()
         url_to_download_final = processed_url
 
         if "cyoa.cafe/game/" in processed_url:
-            self.download_status_label_var.set("Checking cyoa.cafe catalog...\n")
+            self.update_download_status("status", {"message": "Checking cyoa.cafe catalog..."})
             self.root.update_idletasks()
             api_game_url, message_from_api, is_error = url_utils.extract_game_url_from_catalog(
-                processed_url, self.update_download_status)
+                processed_url, self.update_download_status) # Pass callback
             if is_error:
+                self.update_download_status("error", {"message": message_from_api if message_from_api else "Failed to get game URL from catalog."})
                 messagebox.showerror("Catalog Error", message_from_api if message_from_api else "Failed to get game URL from catalog.")
                 self.is_downloading = False
                 self.update_ui_states()
@@ -301,7 +328,7 @@ class GameLauncherApp:
             if api_game_url: url_to_download_final = api_game_url
             else:
                 err_msg = "Unexpected issue: No URL returned from catalog processing without an error."
-                self.download_status_label_var.set(err_msg)
+                self.update_download_status("error", {"message": err_msg})
                 messagebox.showerror("Internal Error", err_msg)
                 self.is_downloading = False
                 self.update_ui_states()
@@ -309,13 +336,13 @@ class GameLauncherApp:
 
         if not url_to_download_final.startswith("https://"):
             err_msg = f"URL to download is not valid HTTPS: {url_to_download_final}"
-            self.download_status_label_var.set(err_msg)
+            self.update_download_status("error", {"message": err_msg})
             messagebox.showerror("Input Error", err_msg)
             self.is_downloading = False
             self.update_ui_states()
             return
 
-        self.download_status_label_var.set(f"Starting download for: {url_to_download_final[:70]}...\n")
+        self.update_download_status("status", {"message": f"Starting download for: {url_to_download_final[:70]}..."})
         self.root.update_idletasks()
         embed_option = self.embed_images_var.get()
         download_thread = threading.Thread(
@@ -326,6 +353,8 @@ class GameLauncherApp:
 
     def handle_download_finished(self, index_html_path: Optional[str], summary_message: str):
         self.is_downloading = False
+        # The summary_message will be set by update_download_status called by the downloader on "finished"
+        # Here we just handle the popups and server logic
         if index_html_path:
             game_folder = Path(index_html_path).parent
             if self.play_after_current_download:
@@ -337,13 +366,13 @@ class GameLauncherApp:
                 self.start_server_logic()
             else:
                 messagebox.showinfo("Download Complete", f"Game downloaded successfully!\n{summary_message}\nGame saved to folder: {game_folder.name}")
-                if not httpd_server: # If no server is running, set this as the active folder for manual start
+                if not httpd_server:
                     self.active_game_directory = str(game_folder)
                     self.url_label_var.set("")
                     self.status_label_var.set("Server not running. Ready to start.")
         else:
             messagebox.showerror("Download Failed", f"Could not complete download.\n{summary_message}")
-        self.update_ui_states()
+        self.update_ui_states() # Ensure UI is consistent after download actions
 
     def try_initial_auto_start(self):
         launcher_dir = get_application_path()
@@ -387,27 +416,24 @@ class GameLauncherApp:
                     port += 1
                     if port > 65535: raise OSError("No free ports found in the common range.")
 
-    # --- MODIFIED BLOCK: Server logic ---
     def serve_http_thread_target(self, port_to_use, game_dir_to_serve: str):
         global httpd_server
 
-        # Handler class with caching disabled
         class NoCacheHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
-            # __init__ does not require changes; functools.partial will correctly pass the directory.
             def end_headers(self):
                 self.send_header('Cache-Control', 'no-store, no-cache, must-revalidate')
                 self.send_header('Pragma', 'no-cache')
                 self.send_header('Expires', '0')
                 super().end_headers()
 
-        temp_httpd_server = None # Local variable for safe initialization
+        temp_httpd_server = None
         try:
             game_dir_path = Path(game_dir_to_serve)
             if not game_dir_path.exists():
                 print(f"Error: Game directory does not exist: {game_dir_path}", file=sys.stderr)
                 self.root.after(0, lambda: messagebox.showerror("Server Error", f"Game directory not found: {game_dir_path}"))
                 return
-            if not (game_dir_path / "index.html").exists(): # Check for index.html
+            if not (game_dir_path / "index.html").exists():
                 print(f"Error: index.html not found in: {game_dir_path}", file=sys.stderr)
                 self.root.after(0, lambda: messagebox.showerror("Server Error", f"index.html not found in {game_dir_path}"))
                 return
@@ -419,7 +445,7 @@ class GameLauncherApp:
 
             server_address = ("127.0.0.1", port_to_use)
             temp_httpd_server = socketserver.TCPServer(server_address, handler_factory)
-            httpd_server = temp_httpd_server # Assign to global variable after successful creation
+            httpd_server = temp_httpd_server
 
             print(f"Server starting on http://{server_address[0]}:{server_address[1]} for directory {game_dir_to_serve}", file=sys.stdout)
 
@@ -427,8 +453,7 @@ class GameLauncherApp:
             self.root.after(0, lambda: self.url_label_var.set(f"URL: http://{server_address[0]}:{port_to_use}/index.html"))
             self.root.after(0, self.update_ui_states)
 
-            httpd_server.serve_forever() # Request logs from here will go to sys.stderr (stderr.log)
-
+            httpd_server.serve_forever()
             print("Server has been shut down.", file=sys.stdout)
         except Exception as e:
             print(f"Server thread critical error: {e}", file=sys.stderr)
@@ -437,16 +462,15 @@ class GameLauncherApp:
             self.root.after(0, lambda: messagebox.showerror("Server Error", f"Could not start server: {e}"))
             self.root.after(0, lambda: self.status_label_var.set("Server failed to start."))
             self.root.after(0, lambda: self.url_label_var.set(""))
-            if httpd_server: # If temp_httpd_server was assigned to httpd_server
+            if httpd_server:
                 try:
                     httpd_server.server_close()
                 except Exception as e_close:
                     print(f"Error closing server after exception: {e_close}", file=sys.stderr)
-            httpd_server = None # Reset in case of an error
+            httpd_server = None
         finally:
             print("Server thread finished.", file=sys.stdout)
             self.root.after(0, self.update_ui_states)
-    # --- END OF MODIFIED BLOCK ---
 
     def start_server_logic(self):
         global current_port, server_thread, httpd_server
@@ -483,7 +507,6 @@ class GameLauncherApp:
                 else: webbrowser.open(url_to_open)
             except Exception as e:
                 messagebox.showwarning("Browser Error", f"Could not open browser automatically: {e}\nPlease open URL manually: {url_to_open}")
-        # self.update_ui_states() # Called in server_thread's finally block
 
     def stop_server(self):
         global httpd_server, server_thread
@@ -492,7 +515,7 @@ class GameLauncherApp:
             self.status_label_var.set("Server stopping...")
             self.root.update_idletasks()
             server_instance_to_stop = httpd_server
-            httpd_server = None # Indicate server is being stopped
+            httpd_server = None
             def shutdown_thread_target(server):
                 try:
                     server.shutdown()
@@ -503,7 +526,7 @@ class GameLauncherApp:
             threading.Thread(target=shutdown_thread_target, args=(server_instance_to_stop,)).start()
 
         if server_thread and server_thread.is_alive():
-            server_thread.join(timeout=5) # Wait for the thread to finish
+            server_thread.join(timeout=5)
             if server_thread.is_alive():
                 print("Warning: Server thread did not terminate cleanly after shutdown signal.", file=sys.stdout)
         server_thread = None
@@ -532,7 +555,6 @@ class GameLauncherApp:
                 self.start_button.config(state=tk.DISABLED)
 
             current_status_text = self.status_label_var.get()
-            # More precise state check to avoid overwriting important transient messages.
             if not (current_status_text.startswith("Server stopping...") or \
                     current_status_text.startswith("Server stopped.") or \
                     current_status_text.startswith("Server starting...") or \
@@ -554,10 +576,10 @@ class GameLauncherApp:
         if self.is_downloading:
             if messagebox.askokcancel("Quit", "A download is in progress. If you quit, it might not complete properly. Quit anyway?"):
                 if httpd_server:
-                    self._suppress_auto_open = True # Prevent browser opening during shutdown
+                    self._suppress_auto_open = True
                     self.stop_server()
                 self.root.destroy()
-            else: return # Do not close
+            else: return
         else:
             if httpd_server:
                 self._suppress_auto_open = True
@@ -569,5 +591,5 @@ if __name__ == "__main__":
     DOWNLOADED_GAMES_BASE_DIR.mkdir(parents=True, exist_ok=True)
     root = tk.Tk()
     app = GameLauncherApp(root)
-    root.geometry("500x500") # Default window size
+    root.geometry("500x500")
     root.mainloop()
