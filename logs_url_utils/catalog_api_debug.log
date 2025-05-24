@@ -1,0 +1,82 @@
+2025-05-24 17:32:20 - INFO: Querying catalog API (direct request): https://cyoa.cafe/api/collections/games/records/nz470yefoh0vvno
+2025-05-24 17:32:21 - API Response for https://cyoa.cafe/api/collections/games/records/nz470yefoh0vvno:
+  Status Code: 200
+  Headers: {
+  "Date": "Sat, 24 May 2025 14:32:21 GMT",
+  "Content-Type": "application/json; charset=UTF-8",
+  "Transfer-Encoding": "chunked",
+  "Connection": "keep-alive",
+  "Vary": "Origin, accept-encoding",
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "SAMEORIGIN",
+  "X-Xss-Protection": "1; mode=block",
+  "Cache-Control": "max-age=600",
+  "Cf-Cache-Status": "EXPIRED",
+  "Last-Modified": "Sat, 24 May 2025 14:32:21 GMT",
+  "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+  "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=glWfwsjxd9sJsnmDzwcTMLHaYY1ehfnuaZO1ARkAO9i9kfF%2Bsiq8fswcYxh6RtSJzlYE4uxjC8pW065KjGAx43RgfAvhbmeyow%3D%3D\"}]}",
+  "Content-Encoding": "gzip",
+  "Server": "cloudflare",
+  "CF-RAY": "944d807c7d674264-EWR",
+  "alt-svc": "h3=\":443\"; ma=86400"
+}
+  Content-Type: application/json; charset=UTF-8
+  Response Body (first 1000 chars):
+{"collectionId":"5kxdvx071c10s2t","collectionName":"games","comments":[],"comments_count":0,"created":"2025-05-21 08:48:31.994Z","cyoa_pages":[],"cyoa_pages_preview":[],"description":"\u003cp\u003e   \"What a strange offer...\" you muttered involuntarily as you continued to stare at the screen. For more than a week, you've been looking for a place to live during college. But the exorbitant prices have driven you to despair. Then, like a ray of hope in the darkness, you stumbled upon this strange offer. Someone was looking for a girl to take care of their dog while they were on vacation, offering not only compensation but the opportunity to live in a luxurious mansion. They even mentioned the possibility of becoming a personalized dog toy and living there as long as you want! But why are there such strange appearance requirements? And why is the position called \"Pet's Pet\"? Oh, they probably just want to make sure they get a beautiful housemate? And they really love their dog, right? 
+  --- End of Response Body Snippet ---
+2025-05-24 17:32:21 - SUCCESS: Found iframe URL: https://dragonswhore-cyoas.neocities.org/Pet's_Pet/ for ID nz470yefoh0vvno
+2025-05-24 17:40:24 - INFO: Querying catalog API (direct request): https://cyoa.cafe/api/collections/games/records/nz470yefoh0vvno
+2025-05-24 17:40:25 - API Response for https://cyoa.cafe/api/collections/games/records/nz470yefoh0vvno:
+  Status Code: 200
+  Headers: {
+  "Date": "Sat, 24 May 2025 14:40:25 GMT",
+  "Content-Type": "application/json; charset=UTF-8",
+  "Transfer-Encoding": "chunked",
+  "Connection": "keep-alive",
+  "Vary": "Origin, accept-encoding",
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "SAMEORIGIN",
+  "X-Xss-Protection": "1; mode=block",
+  "Age": "484",
+  "Cache-Control": "max-age=600",
+  "Cf-Cache-Status": "HIT",
+  "Last-Modified": "Sat, 24 May 2025 14:32:21 GMT",
+  "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+  "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=Oa7NkMXR%2FYkoRfCbEbfdNOHDXF13NU%2F6tEm020VvuHHQMMTDVKgMpPWEuz5GPrklGbqQ9tqr0fWMOySI1saR4crxV9irf3Dw2A%3D%3D\"}]}",
+  "Content-Encoding": "gzip",
+  "Server": "cloudflare",
+  "CF-RAY": "944d8c4faa548cc8-EWR",
+  "alt-svc": "h3=\":443\"; ma=86400"
+}
+  Content-Type: application/json; charset=UTF-8
+  Response Body (first 1000 chars):
+{"collectionId":"5kxdvx071c10s2t","collectionName":"games","comments":[],"comments_count":0,"created":"2025-05-21 08:48:31.994Z","cyoa_pages":[],"cyoa_pages_preview":[],"description":"\u003cp\u003e   \"What a strange offer...\" you muttered involuntarily as you continued to stare at the screen. For more than a week, you've been looking for a place to live during college. But the exorbitant prices have driven you to despair. Then, like a ray of hope in the darkness, you stumbled upon this strange offer. Someone was looking for a girl to take care of their dog while they were on vacation, offering not only compensation but the opportunity to live in a luxurious mansion. They even mentioned the possibility of becoming a personalized dog toy and living there as long as you want! But why are there such strange appearance requirements? And why is the position called \"Pet's Pet\"? Oh, they probably just want to make sure they get a beautiful housemate? And they really love their dog, right? 
+  --- End of Response Body Snippet ---
+2025-05-24 17:40:25 - SUCCESS: Found iframe URL: https://dragonswhore-cyoas.neocities.org/Pet's_Pet/ for ID nz470yefoh0vvno
+2025-05-24 18:03:30 - INFO: Querying catalog API (direct request): https://cyoa.cafe/api/collections/games/records/nz470yefoh0vvno
+2025-05-24 18:03:31 - API Response for https://cyoa.cafe/api/collections/games/records/nz470yefoh0vvno:
+  Status Code: 200
+  Headers: {
+  "Date": "Sat, 24 May 2025 15:03:31 GMT",
+  "Content-Type": "application/json; charset=UTF-8",
+  "Transfer-Encoding": "chunked",
+  "Connection": "keep-alive",
+  "Vary": "Origin, accept-encoding",
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "SAMEORIGIN",
+  "X-Xss-Protection": "1; mode=block",
+  "Cache-Control": "max-age=600",
+  "Cf-Cache-Status": "EXPIRED",
+  "Last-Modified": "Sat, 24 May 2025 15:03:31 GMT",
+  "Nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+  "Report-To": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=zIfZhCdJsM4ObesKVfkSCkm%2FnQa2BRDJvJGVoY%2F3jI7UFyviARgvAsyAcLSdQ01onBbE7BBg2bwTDyZZQ%2Bo08c%2B%2BmGlXi07ezQ%3D%3D\"}]}",
+  "Content-Encoding": "gzip",
+  "Server": "cloudflare",
+  "CF-RAY": "944dae26382c1512-EWR",
+  "alt-svc": "h3=\":443\"; ma=86400"
+}
+  Content-Type: application/json; charset=UTF-8
+  Response Body (first 1000 chars):
+{"collectionId":"5kxdvx071c10s2t","collectionName":"games","comments":[],"comments_count":0,"created":"2025-05-21 08:48:31.994Z","cyoa_pages":[],"cyoa_pages_preview":[],"description":"\u003cp\u003e   \"What a strange offer...\" you muttered involuntarily as you continued to stare at the screen. For more than a week, you've been looking for a place to live during college. But the exorbitant prices have driven you to despair. Then, like a ray of hope in the darkness, you stumbled upon this strange offer. Someone was looking for a girl to take care of their dog while they were on vacation, offering not only compensation but the opportunity to live in a luxurious mansion. They even mentioned the possibility of becoming a personalized dog toy and living there as long as you want! But why are there such strange appearance requirements? And why is the position called \"Pet's Pet\"? Oh, they probably just want to make sure they get a beautiful housemate? And they really love their dog, right? 
+  --- End of Response Body Snippet ---
+2025-05-24 18:03:31 - SUCCESS: Found iframe URL: https://dragonswhore-cyoas.neocities.org/Pet's_Pet/ for ID nz470yefoh0vvno
