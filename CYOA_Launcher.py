@@ -699,6 +699,6 @@ if __name__ == "__main__":
     DOWNLOADED_GAMES_BASE_DIR.mkdir(parents=True, exist_ok=True)
     root = tk.Tk()
     app = GameLauncherApp(root)
-    root.geometry("500x500") 
+    root.geometry("500x550") 
     root.minsize(480, 480)   
     root.mainloop()
