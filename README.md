@@ -104,3 +104,13 @@ This only needs to be done once. macOS will remember your choice for this app.
     *   The server will then start, and the game will open in your browser.
 4.  Use the "Stop Server" button to shut down the local server.
 5.  Close the launcher window to stop the server and exit the application.
+
+
+
+
+
+
+
+## License
+
+This project is licensed under the GNU Lesser General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
